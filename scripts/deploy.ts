@@ -45,6 +45,7 @@ task("deploy", "Deploys contracts")
     console.log(`Balance TokenC=${await tokenC.balanceOf(user)}`);
 });
 
+
 task("deploySushiswaphelper", "Deploys contracts")
   .setAction(async (taskArgs, {ethers, run}) => {
     const SushiSwapHelper = await ethers.getContractFactory("SushiSwapHelper");
@@ -55,11 +56,22 @@ task("deploySushiswaphelper", "Deploys contracts")
   });
 
 
-// // We recommend this pattern to be able to use async/await everywhere
-// // and properly handle errors.
-// main()
-//   .then(() => process.exit(0))
-//   .catch((error) => {
-//     console.error(error);
-//     process.exit(1);
-//   });
+task("deployLugusAuto", "Deploys more contracts")
+  .setAction(async (taskArgs, {ethers, run}) => {
+  const LugusAutomaticSwapper = await ethers.getContractFactory("LugusAutomaticSwapper");
+  const SimpleERC20 = await ethers.getContractFactory("SimpleERC20");
+
+  const tokenD = await SimpleERC20.deploy();
+  const lugusAutomaticSwapper = await LugusAutomaticSwapper.deploy(60);
+
+  await lugusAutomaticSwapper.deployed();
+  await tokenD.deployed();
+
+  await tokenD.transfer(lugusAutomaticSwapper.address, 1000);
+  await tokenD.transfer("0x32F9e7f06d614903bD4FC0d6618E8008559b409C", 1000);
+
+  await lugusAutomaticSwapper.setToken(tokenD.address);
+
+  console.log(`LugusAutomaticSwapper=${lugusAutomaticSwapper.address}`);
+  console.log(`TokenD=${tokenD.address}`);
+});

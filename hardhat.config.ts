@@ -9,8 +9,16 @@ const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY;
 const POLYGON_PRIVATE_KEY = process.env.POLYGON_PRIVATE_KEY;
 
 module.exports = {
-  solidity: "0.8.17",
-  // }
+  solidity: {
+    compilers: [
+      {
+        version: "0.8.17",
+      },
+      {
+        version: "0.8.6",
+      }
+    ]
+  },
   networks: {
     hardhat: {
       forking: {

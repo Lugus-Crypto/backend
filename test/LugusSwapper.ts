@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
-import {BigNumber, Contract, ContractFactory} from "ethers";
+import { BigNumber, Contract, ContractFactory } from "ethers";
 
 describe("LugusSwapper", function () {
 	let deployer: SignerWithAddress,
@@ -13,15 +13,17 @@ describe("LugusSwapper", function () {
 		MockStaking: ContractFactory,
 		SimpleERC20: ContractFactory,
 		SushiSwapHelper: ContractFactory,
+		// LugusAutomaticSwapper: ContractFactory,
 		lugusSwapper: Contract,
 		mockStaking: Contract,
 		tokenA: Contract,
 		tokenB: Contract,
 		tokenC: Contract,
 		sushiSwapHelper: Contract;
+		// lugusAutomaticSwapper: Contract;
 
-	const setupAmount = 1000,
-		stakeAmount = 100;
+	const SETUP_AMOUNT = 1000,
+		STAKE_AMOUNT = 100;
 
 	before(async function () {
 		//Deploy LugusSwapper
@@ -42,6 +44,10 @@ describe("LugusSwapper", function () {
 		SushiSwapHelper = await ethers.getContractFactory("SushiSwapHelper");
 		sushiSwapHelper = await SushiSwapHelper.deploy();
 
+		//Deploy LugusAutomaticSwapper
+		// LugusAutomaticSwapper = await ethers.getContractFactory("LugusAutomaticSwapper");
+		// lugusAutomaticSwapper = await LugusAutomaticSwapper.deploy(30);
+
 		//Initiate signers
 		[deployer, alice] = await ethers.getSigners();
 	});
@@ -57,40 +63,40 @@ describe("LugusSwapper", function () {
 			await mockStaking.addTokenToList(tokenC.address);	
 		});
 
-		it("Transfers " + setupAmount + " tokens to alice", async function() {
-			await expect(await tokenA.transfer(alice.address, setupAmount)).to.changeTokenBalances(tokenA, [deployer, alice], [-setupAmount, setupAmount]);
-			await expect(await tokenB.transfer(alice.address, setupAmount)).to.changeTokenBalances(tokenB, [deployer, alice], [-setupAmount, setupAmount]);
-			await expect(await tokenC.transfer(alice.address, setupAmount)).to.changeTokenBalances(tokenC, [deployer, alice], [-setupAmount, setupAmount]);
+		it("Transfers " + SETUP_AMOUNT + " tokens to alice", async function() {
+			await expect(await tokenA.transfer(alice.address, SETUP_AMOUNT)).to.changeTokenBalances(tokenA, [deployer, alice], [-SETUP_AMOUNT, SETUP_AMOUNT]);
+			await expect(await tokenB.transfer(alice.address, SETUP_AMOUNT)).to.changeTokenBalances(tokenB, [deployer, alice], [-SETUP_AMOUNT, SETUP_AMOUNT]);
+			await expect(await tokenC.transfer(alice.address, SETUP_AMOUNT)).to.changeTokenBalances(tokenC, [deployer, alice], [-SETUP_AMOUNT, SETUP_AMOUNT]);
 		});
 		
-		it("Stake " + stakeAmount + " tokens", async function () {
-			await tokenA.connect(alice).approve(mockStaking.address, stakeAmount);
-			await tokenB.connect(alice).approve(mockStaking.address, stakeAmount);
-			await tokenC.connect(alice).approve(mockStaking.address, stakeAmount);
-			await expect(await mockStaking.connect(alice).stake(tokenA.address, stakeAmount), "Staking tokenA").to.changeTokenBalances(tokenA, [mockStaking, alice], [stakeAmount, -stakeAmount]);
-			await expect(await mockStaking.connect(alice).stake(tokenB.address, stakeAmount), "Staking tokenB").to.changeTokenBalances(tokenB, [mockStaking, alice], [stakeAmount, -stakeAmount]);
-			await expect(await mockStaking.connect(alice).stake(tokenC.address, stakeAmount), "Staking tokenC").to.changeTokenBalances(tokenC, [mockStaking, alice], [stakeAmount, -stakeAmount]);
+		it("Stake " + STAKE_AMOUNT + " tokens", async function () {
+			await tokenA.connect(alice).approve(mockStaking.address, STAKE_AMOUNT);
+			await tokenB.connect(alice).approve(mockStaking.address, STAKE_AMOUNT);
+			await tokenC.connect(alice).approve(mockStaking.address, STAKE_AMOUNT);
+			await expect(await mockStaking.connect(alice).stake(tokenA.address, STAKE_AMOUNT), "Staking tokenA").to.changeTokenBalances(tokenA, [mockStaking, alice], [STAKE_AMOUNT, -STAKE_AMOUNT]);
+			await expect(await mockStaking.connect(alice).stake(tokenB.address, STAKE_AMOUNT), "Staking tokenB").to.changeTokenBalances(tokenB, [mockStaking, alice], [STAKE_AMOUNT, -STAKE_AMOUNT]);
+			await expect(await mockStaking.connect(alice).stake(tokenC.address, STAKE_AMOUNT), "Staking tokenC").to.changeTokenBalances(tokenC, [mockStaking, alice], [STAKE_AMOUNT, -STAKE_AMOUNT]);
 		});
 	});
 
 	describe("Claim tokens", function () {
-		it("Claim " + stakeAmount + " tokens from user", async function () {
+		it("Claim " + STAKE_AMOUNT + " tokens from user", async function () {
 			// await mockStaking.connect(alice).allowClaim(deployer.address);
-			await expect(await mockStaking.connect(alice).claim(alice.address, tokenA.address), "Claim tokenA").to.changeTokenBalances(tokenA, [mockStaking, alice], [-stakeAmount, stakeAmount]);
+			await expect(await mockStaking.connect(alice).claim(alice.address, tokenA.address), "Claim tokenA").to.changeTokenBalances(tokenA, [mockStaking, alice], [-STAKE_AMOUNT, STAKE_AMOUNT]);
 			await expect(await mockStaking.connect(alice).claimAll(alice.address), "Claim all tokens")
 				.to.changeTokenBalances(tokenA, [mockStaking, lugusSwapper], [0, 0])
-				.to.changeTokenBalances(tokenB, [mockStaking, lugusSwapper], [-stakeAmount, stakeAmount])
-				.to.changeTokenBalances(tokenC, [mockStaking, lugusSwapper], [-stakeAmount, stakeAmount]);
+				.to.changeTokenBalances(tokenB, [mockStaking, lugusSwapper], [-STAKE_AMOUNT, STAKE_AMOUNT])
+				.to.changeTokenBalances(tokenC, [mockStaking, lugusSwapper], [-STAKE_AMOUNT, STAKE_AMOUNT]);
 		});
 
-		it("Claim " + stakeAmount + " tokens from approved address", async function () {
-			await stakeTokensUtils(stakeAmount);
+		it("Claim " + STAKE_AMOUNT + " tokens from approved address", async function () {
+			await stakeTokensUtils(STAKE_AMOUNT);
 			await mockStaking.connect(alice).allowClaim(deployer.address);
-			await expect(await mockStaking.connect(deployer).claim(alice.address, tokenA.address), "Claim tokenA").to.changeTokenBalances(tokenA, [mockStaking, alice], [-stakeAmount, stakeAmount]);
+			await expect(await mockStaking.connect(deployer).claim(alice.address, tokenA.address), "Claim tokenA").to.changeTokenBalances(tokenA, [mockStaking, alice], [-STAKE_AMOUNT, STAKE_AMOUNT]);
 			await expect(await mockStaking.connect(deployer).claimAll(alice.address), "Claim all tokens")
 				.to.changeTokenBalances(tokenA, [mockStaking, lugusSwapper], [0, 0])
-				.to.changeTokenBalances(tokenB, [mockStaking, lugusSwapper], [-stakeAmount, stakeAmount])
-				.to.changeTokenBalances(tokenC, [mockStaking, lugusSwapper], [-stakeAmount, stakeAmount]);
+				.to.changeTokenBalances(tokenB, [mockStaking, lugusSwapper], [-STAKE_AMOUNT, STAKE_AMOUNT])
+				.to.changeTokenBalances(tokenC, [mockStaking, lugusSwapper], [-STAKE_AMOUNT, STAKE_AMOUNT]);
 		});
 
 		// it("Claim and Swap singel token", async function () {
@@ -105,7 +111,7 @@ describe("LugusSwapper", function () {
 	})
 
 
-	describe.only("Claim " + stakeAmount + " units from one token", function () {
+	describe("Claim " + STAKE_AMOUNT + " units from one token", function () {
 		it("To USDC", async function () {
 			// expect(1).to.be.equal(0);
 		});
